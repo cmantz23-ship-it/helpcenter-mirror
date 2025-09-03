@@ -8,8 +8,9 @@ def slugify(s):
 
 def iter_jsonl_robust(fp):
     """
-    Yields JSON objects from a file that is *intended* to be JSONL,
-    but may contain multiple concatenated JSON objects on the same line.
+    Yields JSON objects from a file intended to be JSONL, tolerating:
+    - multiple JSON objects concatenated on one physical line
+    - stray non-JSON characters before/after objects
     """
     dec = json.JSONDecoder()
     for raw in fp:
@@ -19,13 +20,18 @@ def iter_jsonl_robust(fp):
         i = 0
         n = len(s)
         while i < n:
-            obj, end = dec.raw_decode(s, i)
-            yield obj
-            # skip any whitespace/comma between concatenated objects
-            j = end
-            while j < n and s[j] in " \t\r\n,":
-                j += 1
-            i = j
+            # find the next plausible JSON object start
+            start = s.find("{", i)
+            if start == -1:
+                break
+            try:
+                obj, end = dec.raw_decode(s, start)
+                yield obj
+                i = end
+            except json.JSONDecodeError:
+                # move past this brace and try again
+                i = start + 1
+                continue
 
 os.makedirs("docs", exist_ok=True)
 nav = {}  # {locale: {category: {section: [("Title","path")]}}}
