@@ -37,14 +37,16 @@ jobs:
         run: |
           python export_zendesk_helpcenter.py
 
-      - name: Build Markdown
-        run: python mkdocs_build.py
+      - name: Build Markdown files & mkdocs.yml
+        run: |
+          python mkdocs_build.py
 
       - name: Build static site
         run: mkdocs build
 
+      # -------- Knowledge artifacts for Custom GPT --------
       - name: Create ONE Markdown Knowledge Book
-       run: |
+        run: |
           python - <<'PY'
           import json, os, re, unicodedata
           from pathlib import Path
@@ -59,7 +61,7 @@ jobs:
               dec = json.JSONDecoder()
               for raw in fp:
                   s = raw.strip()
-                  if not s: 
+                  if not s:
                       continue
                   i, n = 0, len(s)
                   while i < n:
@@ -79,36 +81,29 @@ jobs:
           if not src.exists():
               raise SystemExit("Expected zendesk_export/articles.jsonl. Run export first.")
 
-          # Collect articles and sort them Locale > Category > Section > Title
+          # Collect and sort
           docs = []
           with src.open("r", encoding="utf-8") as f:
-              for a in iter_jsonl_robust(f):
+              for a in iter_jsonL_robust(f):
                   docs.append({
                       "locale": (a.get("locale") or "en-us").lower(),
                       "category": a.get("category_name") or "Uncategorized",
                       "section": a.get("section_name") or "General",
                       "title": a.get("title") or f'Article {a.get("article_id","")}',
                       "url": a.get("url") or "",
-                      # Prefer Markdown if present; fallback to HTML as text
                       "body": a.get("body_markdown") or (a.get("body_html") or "").replace("\r","").strip()
                   })
-
           docs.sort(key=lambda d: (d["locale"], d["category"], d["section"], d["title"].lower()))
 
-          # Build Table of Contents + articles
+          # Build the book
           out = []
           out.append("# Montrium Help Center — Knowledge Book\n")
           out.append("> Consolidated mirror of selected Zendesk Help Center articles for AI ingestion.\n")
           out.append("\n## Table of Contents\n")
-
-          # TOC with anchors
           for d in docs:
               anchor = f'{slugify(d["locale"])}-{slugify(d["category"])}-{slugify(d["section"])}-{slugify(d["title"])}'
               out.append(f'- [{d["locale"]} ▸ {d["category"]} ▸ {d["section"]} ▸ {d["title"]}](#{anchor})')
-
           out.append("\n---\n")
-
-          # Full entries
           for d in docs:
               anchor = f'{slugify(d["locale"])}-{slugify(d["category"])}-{slugify(d["section"])}-{slugify(d["title"])}'
               out.append(f'\n\n---\n\n')
@@ -122,7 +117,6 @@ jobs:
               out.append("\n")
               out.append(d["body"].strip())
               out.append("\n")
-
           Path("knowledge_book.md").write_text("\n".join(out), encoding="utf-8")
           print("Wrote knowledge_book.md")
           PY
@@ -133,12 +127,17 @@ jobs:
           name: knowledge_book_md
           path: knowledge_book.md
 
-
+      - name: Upload export JSON (articles & chunks)
+        uses: actions/upload-artifact@v4
+        with:
+          name: zendesk_export
+          path: zendesk_export/
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./site
+      # -----------------------------------------------------
 
   deploy:
     environment:
