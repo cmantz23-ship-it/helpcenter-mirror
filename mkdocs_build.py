@@ -63,7 +63,7 @@ with open(articles_path, "r", encoding="utf-8") as f:
         cat = a.get("category_name") or "Uncategorized"
         sec = a.get("section_name") or "General"
         title = a.get("title") or f'Article {a.get("article_id","")}'
-        md = a.get("body_markdown") or ""
+        html = a.get("body_html") or ""
 
         # Build file path
         path = f"docs/{loc}/{slugify(cat)}/{slugify(sec)}/{slugify(title)}.md"
@@ -79,9 +79,9 @@ with open(articles_path, "r", encoding="utf-8") as f:
             out.write(f"labels: {a.get('labels')}\n")
             out.write(f"updated_at: {safe_yaml_str(a.get('updated_at'))}\n")
             breadcrumbs = f'{a.get("category_name") or ""} > {a.get("section_name") or ""}'
-            out.write(f'breadcrumbs: "{safe_yaml_str(breadcrumbs)}"\n')
-            out.write("---\n\n")
-            out.write((md or "").strip() + "\n")
+            out.write('<div class="zd-article">\n')
+            out.write((html or "").strip())
+            out.write("\n</div>\n")
 
         nav.setdefault(loc, {}).setdefault(cat, {}).setdefault(sec, []).append(
             (title, path.replace("docs/", ""))
