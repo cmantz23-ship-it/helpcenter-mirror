@@ -90,6 +90,7 @@ with open(articles_path, "r", encoding="utf-8") as f:
 # Write mkdocs.yml with fully quoted keys
 with open("mkdocs.yml", "w", encoding="utf-8") as cfg:
     cfg.write("site_name: Montrium Help Center (Public Mirror)\n")
+    cfg.write('site_url: "https://cmantz23-ship-it.github.io/helpcenter-mirror/"\n')
     cfg.write("theme:\n  name: material\n")
     cfg.write("plugins:\n  - search\n")
     cfg.write("nav:\n")
