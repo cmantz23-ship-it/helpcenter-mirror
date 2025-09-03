@@ -43,6 +43,13 @@ jobs:
       - name: Build static site
         run: mkdocs build
 
+      - name: Upload export JSON
+        uses: actions/upload-artifact@v4
+        with:
+          name: zendesk_export
+          path: zendesk_export/
+
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
