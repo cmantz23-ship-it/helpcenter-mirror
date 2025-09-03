@@ -92,6 +92,7 @@ with open("mkdocs.yml", "w", encoding="utf-8") as cfg:
     cfg.write("site_name: Montrium Help Center (Public Mirror)\n")
     cfg.write('site_url: "https://cmantz23-ship-it.github.io/helpcenter-mirror/"\n')
     cfg.write("theme:\n  name: material\n")
+    cfg.write("extra_css:\n  - assets/zd.css\n")
     cfg.write("plugins:\n  - search\n")
     cfg.write("nav:\n")
     for loc, cats in sorted(nav.items()):
