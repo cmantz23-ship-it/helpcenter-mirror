@@ -84,7 +84,7 @@ jobs:
           # Collect and sort
           docs = []
           with src.open("r", encoding="utf-8") as f:
-              for a in iter_jsonL_robust(f):
+              for a in iter_jsonl_robust(f):
                   docs.append({
                       "locale": (a.get("locale") or "en-us").lower(),
                       "category": a.get("category_name") or "Uncategorized",
