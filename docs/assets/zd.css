@@ -1,0 +1,11 @@
+/* docs/assets/zd.css */
+.zd-article img { max-width: 100%; height: auto; }
+.zd-article table { width: 100%; border-collapse: collapse; }
+.zd-article table th, .zd-article table td { border: 1px solid #e2e8f0; padding: 8px; }
+.zd-article h1, .zd-article h2, .zd-article h3 { margin-top: 1.2em; }
+.zd-article .note, .zd-article .info, .zd-article .warning, .zd-article .tip {
+  padding: 12px 14px; border-left: 4px solid #3b82f6; background: #f8fafc; margin: 1em 0;
+}
+.zd-article .warning { border-color: #f59e0b; background: #fffbeb; }
+.zd-article .tip { border-color: #10b981; background: #ecfdf5; }
+.zd-article code, pre code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
