@@ -1,16 +1,32 @@
-# mkdocs_build.py (robust JSONL reader + clean front-matter)
+# mkdocs_build.py — robust JSONL reader + safe YAML quoting + clean nav
 import json, os, re, unicodedata, pathlib
 
-def slugify(s):
-    s = unicodedata.normalize("NFKD", s).encode("ascii","ignore").decode("ascii")
-    s = re.sub(r"[^a-zA-Z0-9]+","-", s).strip("-").lower()
+# ---------- helpers ----------
+def slugify(s: str) -> str:
+    s = (s or "article")
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
+    s = re.sub(r"[^a-zA-Z0-9]+", "-", s).strip("-").lower()
     return s or "article"
+
+def safe_yaml_str(s: str) -> str:
+    """
+    Make a string YAML-safe for double-quoted context.
+    We escape internal double-quotes and ensure no raw newlines break YAML.
+    """
+    if s is None:
+        s = ""
+    s = str(s)
+    s = s.replace('"', '\\"')
+    # collapse newlines/carriage returns to spaces for YAML keys/values
+    s = s.replace("\r", " ").replace("\n", " ")
+    return s
 
 def iter_jsonl_robust(fp):
     """
     Yields JSON objects from a file intended to be JSONL, tolerating:
     - multiple JSON objects concatenated on one physical line
     - stray non-JSON characters before/after objects
+    - embedded whitespace/commas between objects
     """
     dec = json.JSONDecoder()
     for raw in fp:
@@ -28,13 +44,16 @@ def iter_jsonl_robust(fp):
                 obj, end = dec.raw_decode(s, start)
                 yield obj
                 i = end
+                # skip whitespace or commas between concatenated objects
+                while i < n and s[i] in " \t\r\n,":
+                    i += 1
             except json.JSONDecodeError:
                 # move past this brace and try again
                 i = start + 1
-                continue
 
+# ---------- main ----------
 os.makedirs("docs", exist_ok=True)
-nav = {}  # {locale: {category: {section: [("Title","path")]}}}
+nav = {}  # {locale: {category: {section: [(title, path_rel)]}}}
 
 articles_path = "zendesk_export/articles.jsonl"
 if not os.path.exists(articles_path):
@@ -49,36 +68,44 @@ with open(articles_path, "r", encoding="utf-8") as f:
         sec = a.get("section_name") or "General"
         title = a.get("title") or f'Article {a.get("article_id","")}'
         md = a.get("body_markdown") or ""
-        slug = slugify(title)
-        path = f"docs/{loc}/{slugify(cat)}/{slugify(sec)}/{slug}.md"
+
+        # Build file path
+        path = f"docs/{loc}/{slugify(cat)}/{slugify(sec)}/{slugify(title)}.md"
         pathlib.Path(os.path.dirname(path)).mkdir(parents=True, exist_ok=True)
+
+        # Front matter (YAML) + content
         with open(path, "w", encoding="utf-8") as out:
             out.write("---\n")
-            out.write(f'title: "{title}"\n')
+            out.write(f'title: "{safe_yaml_str(title)}"\n')
             out.write(f"zendesk_url: {a.get('url')}\n")
             out.write(f"article_id: {a.get('article_id')}\n")
-            out.write(f"locale: {loc}\n")
+            out.write(f"locale: {safe_yaml_str(loc)}\n")
             out.write(f"labels: {a.get('labels')}\n")
-            out.write(f"updated_at: {a.get('updated_at')}\n")
-            out.write(f'breadcrumbs: "{(a.get("category_name") or "")} > {(a.get("section_name") or "")}"\n')
+            out.write(f"updated_at: {safe_yaml_str(a.get('updated_at'))}\n")
+            breadcrumbs = f'{a.get("category_name") or ""} > {a.get("section_name") or ""}'
+            out.write(f'breadcrumbs: "{safe_yaml_str(breadcrumbs)}"\n')
             out.write("---\n\n")
             out.write((md or "").strip() + "\n")
 
-        nav.setdefault(loc, {}).setdefault(cat, {}).setdefault(sec, []).append((title, path.replace("docs/","")))
+        nav.setdefault(loc, {}).setdefault(cat, {}).setdefault(sec, []).append(
+            (title, path.replace("docs/", ""))
+        )
 
-# Write mkdocs.yml with nav
-with open("mkdocs.yml","w",encoding="utf-8") as cfg:
+# Write mkdocs.yml with safe titles
+with open("mkdocs.yml", "w", encoding="utf-8") as cfg:
     cfg.write("site_name: Montrium Help Center (Public Mirror)\n")
     cfg.write("theme:\n  name: material\n")
     cfg.write("plugins:\n  - search\n  - sitemap\n")
     cfg.write("nav:\n")
     for loc, cats in sorted(nav.items()):
-        cfg.write(f"  - {loc}:\n")
+        cfg.write(f"  - {safe_yaml_str(loc)}:\n")
         for cat, secs in sorted(cats.items()):
-            cfg.write(f"    - {cat}:\n")
+            cfg.write(f"    - {safe_yaml_str(cat)}:\n")
             for sec, items in sorted(secs.items()):
-                cfg.write(f"      - {sec}:\n")
-                for title, path in sorted(items):
-                    cfg.write(f'        - "{title}": "{path}"\n')
+                cfg.write(f"      - {safe_yaml_str(sec)}:\n")
+                for title, relpath in sorted(items):
+                    cfg.write(
+                        f'        - "{safe_yaml_str(title)}": "{safe_yaml_str(relpath)}"\n'
+                    )
 
 print(f"mkdocs.yml written and docs/ populated with {count} articles.")
