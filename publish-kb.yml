@@ -1,8 +1,19 @@
 name: Publish KB Mirror
+
 on:
-  schedule:
-    - cron: "0 3 * * *"   # 03:00 UTC nightly
   workflow_dispatch: {}
+  schedule:
+    - cron: "0 3 * * *"   # nightly; optional
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,14 +34,20 @@ jobs:
         run: |
           python export_zendesk_helpcenter.py
       - name: Build Markdown
-        run: |
-          python mkdocs_build.py
+        run: python mkdocs_build.py
       - name: Build static site
-        run: |
-          mkdocs build
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        if: github.ref == 'refs/heads/main'
+        run: mkdocs build
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./site
+          path: ./site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
