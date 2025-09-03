@@ -257,8 +257,8 @@ def main():
             category = cat.get("name", "")
             section = section_obj.get("name", "") if section_obj else ""
 
-            if category not in ALLOWED_CATEGORIES and section not in ALLOWED_SECTIONS:
-            continue  # Skip this article
+            if category not in ALLOWED_CATEGORIES:
+                continue  # Skip this article
             # -----------------------
 
             for rec in per_locale:
