@@ -25,6 +25,8 @@ ZENDESK_SUBDOMAIN = os.getenv("ZENDESK_SUBDOMAIN")
 ZENDESK_EMAIL     = os.getenv("ZENDESK_EMAIL")
 ZENDESK_API_TOKEN = os.getenv("ZENDESK_API_TOKEN")
 
+ALLOWED_CATEGORIES = ["eTMF Connect", "RegDocs Connect", "SOP Connect", "Training Connect", "CAPA Connect", "Change Connect", "Supplier Connect", "Audit Connect"]
+
 if not all([ZENDESK_SUBDOMAIN, ZENDESK_EMAIL, ZENDESK_API_TOKEN]):
     raise SystemExit("Missing env vars: ZENDESK_SUBDOMAIN, ZENDESK_EMAIL, ZENDESK_API_TOKEN")
 
@@ -249,6 +251,16 @@ def main():
         try:
             trans = fetch_translations(a["id"])
             per_locale = normalize_article_record(a, trans, secs, cats)
+
+             # --- Filtering step ---
+        section_obj = secs.get(a.get("section_id"))
+        cat = cats.get(section_obj["category_id"]) if section_obj else {}
+        category = cat.get("name", "")
+        section = section_obj.get("name", "") if section_obj else ""
+
+        if category not in ALLOWED_CATEGORIES and section not in ALLOWED_SECTIONS:
+            continue  # Skip this article
+        # -----------------------
 
             for rec in per_locale:
                 # Write the full-article record
