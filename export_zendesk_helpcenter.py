@@ -251,16 +251,15 @@ def main():
         try:
             trans = fetch_translations(a["id"])
             per_locale = normalize_article_record(a, trans, secs, cats)
-
              # --- Filtering step ---
-        section_obj = secs.get(a.get("section_id"))
-        cat = cats.get(section_obj["category_id"]) if section_obj else {}
-        category = cat.get("name", "")
-        section = section_obj.get("name", "") if section_obj else ""
+            section_obj = secs.get(a.get("section_id"))
+            cat = cats.get(section_obj["category_id"]) if section_obj else {}
+            category = cat.get("name", "")
+            section = section_obj.get("name", "") if section_obj else ""
 
-        if category not in ALLOWED_CATEGORIES and section not in ALLOWED_SECTIONS:
+            if category not in ALLOWED_CATEGORIES and section not in ALLOWED_SECTIONS:
             continue  # Skip this article
-        # -----------------------
+            # -----------------------
 
             for rec in per_locale:
                 # Write the full-article record
