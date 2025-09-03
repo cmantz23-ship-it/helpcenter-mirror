@@ -27,16 +27,17 @@ with open(articles_path, "r", encoding="utf-8") as f:
         path = f"docs/{loc}/{slugify(cat)}/{slugify(sec)}/{slug}.md"
         pathlib.Path(os.path.dirname(path)).mkdir(parents=True, exist_ok=True)
         with open(path, "w", encoding="utf-8") as out:
-            out.write(f"---\\n")
-            out.write(f'title: "{title}"\\n')
-            out.write(f"zendesk_url: {a.get('url')}\\n")
-            out.write(f"article_id: {a.get('article_id')}\\n")
-            out.write(f"locale: {loc}\\n")
-            out.write(f"labels: {a.get('labels')}\\n")
-            out.write(f"updated_at: {a.get('updated_at')}\\n")
-            out.write(f"breadcrumbs: \\"{(a.get('category_name') or '')} > {(a.get('section_name') or '')}\\"\\n")
-            out.write(f"---\\n\\n")
-            out.write(md.strip() + "\\n")
+            out.write("---\n")
+            out.write(f'title: "{title}"\n')
+            out.write(f"zendesk_url: {a.get('url')}\n")
+            out.write(f"article_id: {a.get('article_id')}\n")
+            out.write(f"locale: {loc}\n")
+            out.write(f"labels: {a.get('labels')}\n")
+            out.write(f"updated_at: {a.get('updated_at')}\n")
+            out.write(f'breadcrumbs: "{(a.get("category_name") or "")} > {(a.get("section_name") or "")}"\n')
+            out.write("---\n\n")
+            out.write(md.strip() + "\n")
+
 
         nav.setdefault(loc, {}).setdefault(cat, {}).setdefault(sec, []).append((title, path.replace("docs/","")))
 
