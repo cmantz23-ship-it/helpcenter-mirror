@@ -19,13 +19,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4 tiktoken html2text tenacity mkdocs mkdocs-material
+
       - name: Export from Zendesk
         env:
           ZENDESK_SUBDOMAIN: ${{ secrets.ZENDESK_SUBDOMAIN }}
@@ -33,10 +36,13 @@ jobs:
           ZENDESK_API_TOKEN: ${{ secrets.ZENDESK_API_TOKEN }}
         run: |
           python export_zendesk_helpcenter.py
+
       - name: Build Markdown
         run: python mkdocs_build.py
+
       - name: Build static site
         run: mkdocs build
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
