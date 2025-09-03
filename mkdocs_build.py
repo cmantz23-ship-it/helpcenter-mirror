@@ -1,4 +1,4 @@
-# mkdocs_build.py — robust JSONL reader + safe YAML quoting + clean nav
+# mkdocs_build.py — robust JSONL reader + YAML-safe quoting + clean nav
 import json, os, re, unicodedata, pathlib
 
 # ---------- helpers ----------
@@ -10,14 +10,14 @@ def slugify(s: str) -> str:
 
 def safe_yaml_str(s: str) -> str:
     """
-    Make a string YAML-safe for double-quoted context.
-    We escape internal double-quotes and ensure no raw newlines break YAML.
+    Make a string YAML-safe for use inside double quotes.
+    YAML escapes a double-quote by doubling it: "".
+    Also collapse newlines to spaces.
     """
     if s is None:
         s = ""
     s = str(s)
-    s = s.replace('"', '\\"')
-    # collapse newlines/carriage returns to spaces for YAML keys/values
+    s = s.replace('"', '""')
     s = s.replace("\r", " ").replace("\n", " ")
     return s
 
@@ -33,10 +33,8 @@ def iter_jsonl_robust(fp):
         s = raw.strip()
         if not s:
             continue
-        i = 0
-        n = len(s)
+        i, n = 0, len(s)
         while i < n:
-            # find the next plausible JSON object start
             start = s.find("{", i)
             if start == -1:
                 break
@@ -44,12 +42,10 @@ def iter_jsonl_robust(fp):
                 obj, end = dec.raw_decode(s, start)
                 yield obj
                 i = end
-                # skip whitespace or commas between concatenated objects
                 while i < n and s[i] in " \t\r\n,":
                     i += 1
             except json.JSONDecodeError:
-                # move past this brace and try again
-                i = start + 1
+                i = start + 1  # skip this brace and keep scanning
 
 # ---------- main ----------
 os.makedirs("docs", exist_ok=True)
@@ -91,21 +87,19 @@ with open(articles_path, "r", encoding="utf-8") as f:
             (title, path.replace("docs/", ""))
         )
 
-# Write mkdocs.yml with safe titles
+# Write mkdocs.yml with fully quoted keys
 with open("mkdocs.yml", "w", encoding="utf-8") as cfg:
     cfg.write("site_name: Montrium Help Center (Public Mirror)\n")
     cfg.write("theme:\n  name: material\n")
     cfg.write("plugins:\n  - search\n  - sitemap\n")
     cfg.write("nav:\n")
     for loc, cats in sorted(nav.items()):
-        cfg.write(f"  - {safe_yaml_str(loc)}:\n")
+        cfg.write(f'  - "{safe_yaml_str(loc)}":\n')
         for cat, secs in sorted(cats.items()):
-            cfg.write(f"    - {safe_yaml_str(cat)}:\n")
+            cfg.write(f'    - "{safe_yaml_str(cat)}":\n')
             for sec, items in sorted(secs.items()):
-                cfg.write(f"      - {safe_yaml_str(sec)}:\n")
+                cfg.write(f'      - "{safe_yaml_str(sec)}":\n')
                 for title, relpath in sorted(items):
-                    cfg.write(
-                        f'        - "{safe_yaml_str(title)}": "{safe_yaml_str(relpath)}"\n'
-                    )
+                    cfg.write(f'        - "{safe_yaml_str(title)}": "{safe_yaml_str(relpath)}"\n')
 
 print(f"mkdocs.yml written and docs/ populated with {count} articles.")
